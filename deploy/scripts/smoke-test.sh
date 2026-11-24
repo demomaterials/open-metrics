@@ -39,7 +39,8 @@ assert d["from"] == "2026-03-02" and d["to"] == "2026-07-12"
 cards = d["cards"]; assert cards, "no cards"
 bad = [c for c in cards if c.get("error")]
 assert not bad, bad
-print(f"ok   board data for Week 10–28 2026: {len(cards)} cards, statuses {sorted({c[\"status\"] for c in cards})}")'
+statuses = sorted({c["status"] for c in cards})
+print(f"ok   board data for Week 10-28 2026: {len(cards)} cards, statuses {statuses}")'
 src=$("${C[@]}" -f "$U/api/datasources" | python3 -c 'import sys,json; print(next((s["id"] for s in json.load(sys.stdin) if s["name"]=="Sample warehouse"),""))')
 if [[ -n "$src" ]]; then
   "${C[@]}" -f "$U/api/datasources/$src/schemas" | grep -q analytics || fail "sample warehouse schemas"

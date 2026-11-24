@@ -18,7 +18,7 @@ const EMPTY: MetricInput = {
   description: "",
   unit: "number",
   unit_label: "",
-  decimals: 1,
+  decimals: 0,
   direction: "higher_is_better",
   period_type: "week",
   thresholds: { green: null, amber: null },
