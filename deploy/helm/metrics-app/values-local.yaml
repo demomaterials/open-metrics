@@ -1,0 +1,14 @@
+# Rancher Desktop (k3s, Traefik disabled) — see deploy/scripts/deploy-local.sh
+hostname: metrics.bupasec.com
+ingress:
+  enabled: false
+httpRoute:
+  enabled: true
+gateway:
+  create: true
+backend:
+  replicas: 1
+frontend:
+  replicas: 1
+networkPolicy:
+  edgeNamespaces: [envoy-gateway-system]

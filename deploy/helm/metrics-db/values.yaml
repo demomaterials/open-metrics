@@ -1,0 +1,32 @@
+# PostgreSQL for open-metrics. Kept separate from metrics-app so the database
+# has its own lifecycle (upgrades, backups) and can be swapped for a managed
+# PostgreSQL by simply not installing this chart.
+
+# Secret (created out-of-band, see deploy/scripts/bootstrap-secrets.sh) with:
+#   POSTGRES_PASSWORD   superuser
+#   APP_DB_PASSWORD     role metrics_app (owner of database "metrics")
+#   READER_DB_PASSWORD  role metrics_reader (read-only, database "sampledata")
+credentialsSecret: metrics-db-credentials
+
+image: postgres:17-alpine
+imagePullPolicy: IfNotPresent
+serviceName: metrics-db
+port: 5432
+
+persistence:
+  size: 5Gi
+  storageClass: ""        # "" = cluster default (local-path on Rancher Desktop)
+
+resources:
+  requests: { cpu: 100m, memory: 256Mi }
+  limits: { cpu: "1", memory: 1Gi }
+
+# Idempotent role/database bootstrap + sample warehouse (files/bootstrap.sql),
+# run as a Job after every install/upgrade.
+bootstrap:
+  enabled: true
+
+# Only pods labelled app.kubernetes.io/part-of=open-metrics in this namespace
+# may connect.
+networkPolicy:
+  enabled: true

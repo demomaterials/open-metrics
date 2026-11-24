@@ -1,0 +1,4 @@
+open-metrics is deployed at https://{{ .Values.hostname }}
+
+Sign in as "{{ .Values.config.adminUsername }}". Initial password:
+  kubectl -n {{ .Release.Namespace }} get secret {{ .Values.secrets.app }} -o jsonpath='{.data.ADMIN_PASSWORD}' | base64 -d; echo

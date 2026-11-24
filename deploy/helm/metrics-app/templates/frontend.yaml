@@ -1,0 +1,56 @@
+{{- $ctx := dict "root" . "name" "metrics-frontend" "component" "frontend" }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: metrics-frontend
+  labels: {{- include "metrics.labels" $ctx | nindent 4 }}
+spec:
+  replicas: {{ .Values.frontend.replicas }}
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels: { app.kubernetes.io/name: metrics-frontend }
+  template:
+    metadata:
+      labels: {{- include "metrics.labels" $ctx | nindent 8 }}
+    spec:
+      {{- include "metrics.imagePullSecrets" . | nindent 6 }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        runAsGroup: 101
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: frontend
+          image: {{ .Values.images.frontend }}
+          imagePullPolicy: {{ .Values.images.pullPolicy }}
+          ports:
+            - { name: http, containerPort: 8080 }
+          env:
+            - { name: BACKEND_URL, value: "http://metrics-backend:8080" }
+          readinessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            initialDelaySeconds: 5
+            periodSeconds: 20
+          {{- include "metrics.containerSecurity" . | nindent 10 }}
+          resources: {{- toYaml .Values.frontend.resources | nindent 12 }}
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+            - { name: conf, mountPath: /etc/nginx/conf.d }
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: conf
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: metrics-frontend
+  labels: {{- include "metrics.labels" $ctx | nindent 4 }}
+spec:
+  selector: { app.kubernetes.io/name: metrics-frontend }
+  ports:
+    - { name: http, port: 8080, targetPort: http }

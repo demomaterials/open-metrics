@@ -1,0 +1,6 @@
+apiVersion: v2
+name: metrics-app
+description: open-metrics application – React frontend, FastAPI backend, Alembic migrations, routing
+type: application
+version: 1.0.0
+appVersion: "1.0.0"

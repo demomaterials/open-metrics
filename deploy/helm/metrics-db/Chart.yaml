@@ -1,0 +1,6 @@
+apiVersion: v2
+name: metrics-db
+description: PostgreSQL for open-metrics (application database + optional sample warehouse)
+type: application
+version: 1.0.0
+appVersion: "17"

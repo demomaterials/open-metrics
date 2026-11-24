@@ -1,0 +1,26 @@
+{{- if .Values.networkPolicy.enabled }}
+# The backend accepts traffic only from the frontend and from the edge proxy
+# (Ingress controller or Envoy Gateway) namespaces listed in values.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: metrics-backend
+  labels: {{- include "metrics.labels" (dict "root" . "name" "metrics-backend" "component" "backend") | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels: { app.kubernetes.io/name: metrics-backend }
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels: { app.kubernetes.io/name: metrics-frontend }
+        {{- with .Values.networkPolicy.edgeNamespaces }}
+        - namespaceSelector:
+            matchExpressions:
+              - key: kubernetes.io/metadata.name
+                operator: In
+                values: {{- toYaml . | nindent 18 }}
+        {{- end }}
+      ports:
+        - { port: http, protocol: TCP }
+{{- end }}

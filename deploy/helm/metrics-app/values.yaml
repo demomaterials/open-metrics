@@ -1,0 +1,93 @@
+# open-metrics application. Requires a PostgreSQL (the metrics-db chart or a
+# managed instance) and two Secrets created out-of-band — no chart templates a
+# Secret. See deploy/scripts/bootstrap-secrets.sh and docs/DEPLOY-RANCHER.md.
+
+hostname: metrics.example.com
+
+images:
+  backend: open-metrics-backend:1.0.0
+  frontend: open-metrics-frontend:1.0.0
+  pullPolicy: IfNotPresent
+imagePullSecrets: []
+
+secrets:
+  # SECRET_ENCRYPTION_KEY, ADMIN_PASSWORD
+  app: metrics-app-secrets
+  # APP_DB_PASSWORD (+ READER_DB_PASSWORD when sampleSource.enabled)
+  db: metrics-db-credentials
+
+# Non-sensitive configuration (rendered into the metrics-config ConfigMap).
+db:
+  host: metrics-db
+  port: 5432
+  name: metrics
+  user: metrics_app
+  sslmode: prefer
+config:
+  sessionHours: 12
+  cookieSecure: true
+  adminUsername: admin
+  seedDemo: true          # demo boards on first install only (when no boards exist)
+  logLevel: info
+  externalStatementTimeoutMs: 15000
+
+# Register the metrics-db sample warehouse as an external data source on
+# first install (demonstrates mapping an external table).
+sampleSource:
+  enabled: true
+  host: metrics-db
+  database: sampledata
+  user: metrics_reader
+
+backend:
+  replicas: 2
+  resources:
+    requests: { cpu: 100m, memory: 192Mi }
+    limits: { cpu: "1", memory: 512Mi }
+
+frontend:
+  replicas: 2
+  resources:
+    requests: { cpu: 20m, memory: 32Mi }
+    limits: { cpu: 250m, memory: 128Mi }
+
+# Runs `alembic upgrade head` + first-admin/demo bootstrap before every
+# install/upgrade (Helm pre-install/pre-upgrade hook).
+migrations:
+  enabled: true
+  resources:
+    requests: { cpu: 50m, memory: 128Mi }
+    limits: { cpu: 500m, memory: 384Mi }
+
+# Classic Ingress (Rancher clusters with ingress-nginx / Traefik):
+#   /api → backend, / → frontend
+ingress:
+  enabled: true
+  className: ""           # "" = cluster default IngressClass
+  annotations: {}
+  tls:
+    enabled: true
+    secretName: metrics-tls
+
+# Gateway API alternative (Envoy Gateway, Cilium, Istio, …).
+httpRoute:
+  enabled: false
+  # Attach to an existing Gateway…
+  parentRefs: []
+  #  - name: shared-gateway
+  #    namespace: gateway-system
+  #    sectionName: https
+
+# …or let this chart create a dedicated Envoy Gateway (GatewayClass,
+# EnvoyProxy, Gateway with HTTP→HTTPS redirect). Needs Envoy Gateway installed.
+gateway:
+  create: false
+  className: metrics
+  name: metrics-gateway
+  serviceName: metrics-gateway   # stable name of the LoadBalancer Service
+  tlsSecret: metrics-tls
+
+networkPolicy:
+  enabled: true
+  # Namespaces of the edge proxy that forwards /api to the backend.
+  edgeNamespaces: [ingress-nginx, cattle-system, kube-system]
